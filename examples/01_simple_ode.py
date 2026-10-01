@@ -42,7 +42,7 @@ def main():
     # 上段：求まった近似解の波形
     plt.subplot(2, 1, 1)
     plt.plot(x, u_optimized, label=f'OrthoFitter Solution (Loss={result["final_loss"]:.2e})', color='blue', linewidth=2)
-    plt.title('OrthoFitter: Hermite ODE ($\lambda = 2$) Result')
+    plt.title(r'OrthoFitter: Hermite ODE ($\lambda = 2$) Result')
     plt.xlabel('x')
     plt.ylabel('u_pred(x)')
     plt.grid(True)
