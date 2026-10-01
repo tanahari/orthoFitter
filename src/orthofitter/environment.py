@@ -40,12 +40,25 @@ class HermiteODEEnvironment:
 
         return residuals
 
-    def evaluate_loss(self, u_pred: np.ndarray) -> float:
+    def evaluate_rayleigh_loss(self, u_pred: np.ndarray) -> float:
         """
-        残差のL2ノルム（残差二乗積分の値）を計算し、AI/最適化の報酬・損失とする
-        loss = int (R(x))^2 dx
+        レイリー商スタイルのロスを計算する
+        Loss = (残差の二乗積分) / (解の二乗積分)
+        
+        これによって u(x) = 0 という自明な解（ゼロ解の罠）を完全に排除する。
         """
         residuals = self.compute_residuals(u_pred)
-        # 台形公式などで積分を近似
-        loss = np.trapezoid(residuals**2, self.x)
+        
+        # 分子: 残差の2乗積分
+        residual_norm = np.trapezoid(residuals**2, self.x)
+        
+        # 分母: 解自体の2乗積分（エネルギー / ノルム）
+        solution_norm = np.trapezoid(u_pred**2, self.x)
+        
+        # ゼロ割を防ぐための微小な定数 (eps)
+        eps = 1e-8
+        
+        # 「残差が小さく」かつ「解がゼロではない（分母が大きい）」ほどロスが小さくなる
+        loss = residual_norm / (solution_norm + eps)
+        
         return float(loss)

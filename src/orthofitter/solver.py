@@ -22,8 +22,8 @@ class CoefficientOptimizer:
             # 1. 係数から予測波形 u_pred を生成
             u_pred = self.catalog.evaluate_all(self.environment.x, coeffs)
 
-            # 2. 環境から物理的残差のロスを受け取る
-            loss = self.environment.evaluate_loss(u_pred)
+            # 2. レイリー商ベースのロス（自明な解を排除する評価）を受け取る
+            loss = self.environment.evaluate_rayleigh_loss(u_pred)
             return loss
 
         # SciPy の L-BFGS-B などの勾配ベース・準ニュートン法ソルバーを使用
