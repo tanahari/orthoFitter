@@ -13,8 +13,8 @@ class StochasticSearchSolver(BaseSolver):
         self.options = options or {
             'maxiter': 100,
             'num_agents': 100,
-            'top_k': 10,
-            'initial_sigma': 0.5,
+            'top_k': 50,
+            'initial_sigma': 1.0,
             'sigma_min': 0.01
         }
 
@@ -30,6 +30,10 @@ class StochasticSearchSolver(BaseSolver):
 
         best_loss = float('inf')
         best_coeffs = mu.copy()
+
+        # --- 診断用の履歴記録リスト ---
+        history_loss = []
+        history_sigma = []
 
         for gen in range(maxiter):
             # 1. 行動（Action）：現在の中心 mu と広がり sigma から候補をガウスサンプリング
@@ -61,9 +65,15 @@ class StochasticSearchSolver(BaseSolver):
             current_std = np.std(elite_actions, axis=0).mean()
             sigma = max(current_std * 1.1, sigma_min)
 
+            # --- 履歴を保存 ---
+            history_loss.append(best_loss)
+            history_sigma.append(sigma)
+
         return {
             'success': True,
             'message': f"Stochastic search converged with Best Loss: {best_loss:.4e}",
             'optimized_coeffs': best_coeffs,
-            'final_loss': best_loss
+            'final_loss': best_loss,
+            'history_loss': history_loss,    # 追加
+            'history_sigma': history_sigma   # 追加
         }
