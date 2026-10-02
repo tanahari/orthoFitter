@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import minimize
-from .catalog import HermiteCatalog
-from .environment import HermiteODEEnvironment
+from ..catalog import HermiteCatalog
+from ..environment import HermiteODEEnvironment
 
 class CoefficientOptimizer:
     """
