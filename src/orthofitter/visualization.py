@@ -6,7 +6,8 @@ def save_optimization_plots(
     environment, 
     catalog, 
     result: dict, 
-    output_dir: str | Path = "outputs"
+    output_dir: str | Path = "outputs",
+    title: str = "Result"
 ):
     """
     最適化結果および診断用グラフを指定ディレクトリに保存する共通関数
@@ -23,7 +24,7 @@ def save_optimization_plots(
     fig, axes = plt.subplots(2, 1, figsize=(8, 6))
     
     axes[0].plot(x, u_optimized, label=f'OrthoFitter Solution (Loss={result["final_loss"]:.2e})', color='blue', linewidth=2)
-    axes[0].set_title(r'OrthoFitter: Hermite ODE ($\lambda = 2$) Result')
+    axes[0].set_title("OrthoFitte:" + title)
     axes[0].set_xlabel('x')
     axes[0].set_ylabel('u_pred(x)')
     axes[0].grid(True)
