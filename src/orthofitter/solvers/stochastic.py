@@ -11,10 +11,10 @@ class StochasticSearchSolver(BaseSolver):
         self.catalog = catalog
         self.environment = environment
         self.options = options or {
-            'maxiter': 50,
-            'num_agents': 20,
-            'top_k': 4,
-            'initial_sigma': 1.0,
+            'maxiter': 100,
+            'num_agents': 100,
+            'top_k': 10,
+            'initial_sigma': 0.5,
             'sigma_min': 0.01
         }
 
