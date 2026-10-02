@@ -4,7 +4,7 @@ import numpy as np
 # 作成したパッケージから必要なモジュールをインポート
 from orthofitter.catalog import HermiteCatalog
 from orthofitter.environment import HermiteODEEnvironment
-from orthofitter.solvers import StochasticSearchSolver as Solver
+from orthofitter.solvers.gradient_and_stochastic import HybridSolver as Solver
 from orthofitter.visualization import save_optimization_plots  # 共通化された可視化をインポート
 
 def main():
@@ -18,20 +18,22 @@ def main():
     )
     args = parser.parse_args()
 
-    print("=== OrthoFitter: 01_simple_ode.py (λ = 2 Hermite ODE Test) ===")
+    lambda_val = 5.0
+
+    print(f"=== OrthoFitter: 01_simple_ode.py (λ = {lambda_val} Hermite ODE Test) ===")
 
     # 1. カタログの初期化
     max_degree = 3
     catalog = HermiteCatalog(max_degree=max_degree)
 
     # 2. 環境の初期化
-    environment = HermiteODEEnvironment(x_domain=(-5.0, 5.0), num_points=1000, lambda_val=2.0)
+    environment = HermiteODEEnvironment(x_domain=(-5.0, 5.0), num_points=1000, lambda_val=lambda_val)
 
     # 3. ソルバーの初期化
     optimizer = Solver(catalog, environment)
 
     # 4. 初期係数の設定
-    initial_coeffs = np.array([0.1, 1.0, 0.1, 0.1])
+    initial_coeffs = np.array([1.0, 1.0, 1.0, 1.0])
     print(f"初期係数レシピ: {initial_coeffs}")
 
     # 5. 最適化を実行
@@ -45,9 +47,10 @@ def main():
     print(f"最終的な残差ロス (Loss): {result['final_loss']:.2e}")
 
     # 6. 可視化フラグが True の場合のみ、共通関数を実行
+    title = f"OrthoFitter: Hermite ODE ($\\lambda$ = {lambda_val}) Result"
     if args.visualize:
         print("\n可視化モードが有効です。画像を作成しています...")
-        save_optimization_plots(environment, catalog, result, output_dir="outputs")
+        save_optimization_plots(environment, catalog, result, output_dir="outputs", title=title)
     else:
         print("\n(※ 可視化はスキップされました。有効にするには `-v` または `--visualize` オプションを付与してください)")
 
