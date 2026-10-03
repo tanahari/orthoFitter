@@ -42,5 +42,6 @@ class HybridSolver(BaseSolver):
             'optimized_coeffs': gradient_result['optimized_coeffs'],
             'final_loss': gradient_result['final_loss'],
             'history_loss': stochastic_result.get('history_loss', []),
-            'history_sigma': stochastic_result.get('history_sigma', [])
+            'history_sigma': stochastic_result.get('history_sigma', []),
+            'history_coeffs': stochastic_result.get('history_coeffs', [])
         }

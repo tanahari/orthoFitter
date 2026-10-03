@@ -34,6 +34,7 @@ class StochasticSearchSolver(BaseSolver):
         # --- 診断用の履歴記録リスト ---
         history_loss = []
         history_sigma = []
+        history_coeffs = []
 
         for gen in range(maxiter):
             # 1. 行動（Action）：現在の中心 mu と広がり sigma から候補をガウスサンプリング
@@ -68,12 +69,14 @@ class StochasticSearchSolver(BaseSolver):
             # --- 履歴を保存 ---
             history_loss.append(best_loss)
             history_sigma.append(sigma)
+            history_coeffs.append(mu.copy())
 
         return {
             'success': True,
             'message': f"Stochastic search converged with Best Loss: {best_loss:.4e}",
             'optimized_coeffs': best_coeffs,
             'final_loss': best_loss,
-            'history_loss': history_loss,    # 追加
-            'history_sigma': history_sigma   # 追加
+            'history_loss': history_loss,
+            'history_sigma': history_sigma,
+            'history_coeffs': history_coeffs
         }

@@ -5,7 +5,7 @@ import numpy as np
 from orthofitter.catalog import HermiteCatalog
 from orthofitter.environment import HermiteODEEnvironment
 from orthofitter.solvers.gradient_and_stochastic import HybridSolver as Solver
-from orthofitter.visualization import save_optimization_plots  # 共通化された可視化をインポート
+from orthofitter.visualization import save_optimization_plots, save_coefficient_dynamics_plots
 
 def main():
     # --- コマンドライン引数の設定 ---
@@ -51,6 +51,7 @@ def main():
     if args.visualize:
         print("\n可視化モードが有効です。画像を作成しています...")
         save_optimization_plots(environment, catalog, result, output_dir="outputs", title=title)
+        save_coefficient_dynamics_plots(environment, catalog, result, output_dir="outputs")
     else:
         print("\n(※ 可視化はスキップされました。有効にするには `-v` または `--visualize` オプションを付与してください)")
 
