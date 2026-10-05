@@ -18,7 +18,7 @@ def save_optimization_plots(
     x = environment.x
     optimized_coeffs = result['optimized_coeffs']
     u_optimized = catalog.evaluate_all(x, optimized_coeffs)
-    residuals = environment.compute_residuals(u_optimized)
+    residuals, x_sub = environment.compute_residuals(u_optimized)
 
     # --- 1. 解の波形と残差のプロット ---
     fig, axes = plt.subplots(2, 1, figsize=(8, 6))
@@ -30,7 +30,7 @@ def save_optimization_plots(
     axes[0].grid(True)
     axes[0].legend()
 
-    axes[1].plot(x, residuals, label='Residual $R(x)$', color='red', linestyle='--')
+    axes[1].plot(x_sub, residuals, label='Residual $R(x)$', color='red', linestyle='--')
     axes[1].axhline(0, color='black', linewidth=0.5, linestyle=':')
     axes[1].set_title('Differential Equation Residuals')
     axes[1].set_xlabel('x')
