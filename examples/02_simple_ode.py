@@ -27,9 +27,9 @@ def main():
     ga_options = {
         'pop_size': 20,          # 1世代あたりの個体数
         'generations': 10,       # 世代数
-        'mutation_rate': 0.5,    # 0/1反転の確率
-        'elite_ratio': 0.2,      # 次世代へ無条件で残すエリートの割合
-        'beta': 5.0              # 基底数に対するペナルティ係数
+        'mutation_rate': 0.1,    # 0/1反転の確率
+        'elite_ratio': 0.1,      # 次世代へ無条件で残すエリートの割合
+        'beta': 1e-3             # 基底数に対するペナルティ係数
     }
     optimizer = GAOptimizer(catalog, environment, options=ga_options)
 

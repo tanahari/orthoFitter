@@ -56,7 +56,7 @@ def save_optimization_plots(
         axes[0].grid(True)
         
         axes[1].plot(result['history_sigma'], color='tab:orange', linewidth=1.5)
-        axes[1].set_title('Search Radius ($\sigma$)')
+        axes[1].set_title('Search Radius ($\\sigma$)')
         axes[1].set_xlabel('Generation')
         axes[1].set_ylabel('Sigma')
         axes[1].grid(True)
