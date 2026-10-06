@@ -125,3 +125,129 @@ def save_coefficient_dynamics_plots(
     plt.savefig(path_dyn, dpi=300)
     plt.close()
     print(f"-> 係数ダイナミクスの診断グラフを保存しました: {path_dyn}")
+
+def save_basis_adoption_heatmap(result: dict, output_dir: str | Path = "outputs"):
+    """
+    【可視化①：基底の採用率時系列ヒートマップ】
+    世代ごとの各次数の基底の採用率（全個体の中でその基底がONになっている割合）を
+    ヒートマップとして可視化・保存する
+    """
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    lineage_records = result.get('lineage_records', [])
+    if not lineage_records:
+        print("-> 警告: lineage_records が見つからないため、基底採用率ヒートマップの作成をスキップします。")
+        return
+
+    # 世代ごとにマスクのリストをグループ化
+    generations_dict = {}
+    for record in lineage_records:
+        gen = record['generation']
+        if gen not in generations_dict:
+            generations_dict[gen] = []
+        generations_dict[gen].append(record['mask'])
+
+    max_gen = max(generations_dict.keys())
+    sample_mask = lineage_records[0]['mask']
+    max_degree = len(sample_mask) - 1
+
+    # 採用率行列の作成: 形状は (max_degree + 1, max_gen + 1)
+    adoption_matrix = np.zeros((max_degree + 1, max_gen + 1))
+
+    for gen in sorted(generations_dict.keys()):
+        masks = np.array(generations_dict[gen]) # shape: (pop_size, max_degree + 1)
+        # 各列（次数ごと）の平均を計算（1が立っている割合 = 採用率）
+        adoption_rates = np.mean(masks, axis=0)
+        adoption_matrix[:, gen] = adoption_rates
+
+    # ヒートマップの描画
+    fig, ax = plt.subplots(figsize=(10, 6))
+    cax = ax.imshow(adoption_matrix, aspect='auto', origin='lower', cmap='Blues', vmin=0.0, vmax=1.0)
+    
+    fig.colorbar(cax, label='Adoption Rate (Probability)')
+    ax.set_title("Basis Adoption Rate over Generations")
+    ax.set_xlabel("Generation")
+    ax.set_ylabel("Basis Degree (n)")
+    
+    # 整数目盛りに設定
+    ax.set_xticks(range(max_gen + 1))
+    ax.set_yticks(range(max_degree + 1))
+
+    plt.tight_layout()
+    path_out = output_dir / 'basis_adoption_heatmap.png'
+    plt.savefig(path_out, dpi=300)
+    plt.close()
+    print(f"-> 成果物を保存しました: {path_out}")
+
+def save_loss_distribution_plot(result: dict, output_dir: str | Path = "outputs"):
+    """
+    【可視化②：世代ごとのLoss分布の推移】
+    各世代における全個体のLossの分布（中央値、25%-75%範囲、最小値）を
+    対数スケールのバンドグラフとして可視化・保存する
+    """
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    lineage_records = result.get('lineage_records', [])
+    if not lineage_records:
+        print("-> 警告: lineage_records が見つからないため、Loss分布グラフの作成をスキップします。")
+        return
+
+    # 世代ごとにLossを収集
+    gen_losses = {}
+    for record in lineage_records:
+        gen = record['generation']
+        loss = record['loss']
+        # 無限大やNaNを除外して対数表示に備える
+        if not np.isinf(loss) and not np.isnan(loss):
+            if gen not in gen_losses:
+                gen_losses[gen] = []
+            gen_losses[gen].append(loss)
+
+    generations = sorted(gen_losses.keys())
+    medians = []
+    p25s = []
+    p75s = []
+    mins = []
+    maxs = []
+
+    for gen in generations:
+        losses = np.array(gen_losses[gen])
+        medians.append(np.median(losses))
+        p25s.append(np.percentile(losses, 25))
+        p75s.append(np.percentile(losses, 75))
+        mins.append(np.min(losses))
+        maxs.append(np.max(losses))
+
+    # プロット作成
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    gens = np.array(generations)
+    medians = np.array(medians)
+    p25s = np.array(p25s)
+    p75s = np.array(p75s)
+    mins = np.array(mins)
+    maxs = np.array(maxs)
+
+    # IQR（25%〜75%）のバンド
+    ax.fill_between(gens, p25s, p75s, color='tab:blue', alpha=0.3, label='IQR (25% - 75%)')
+    # 最小〜最大のバンド（または点線）
+    ax.fill_between(gens, mins, maxs, color='tab:blue', alpha=0.1, label='Min - Max Range')
+    
+    # 中央値と最良値（最小値）の推移線
+    ax.plot(gens, medians, color='tab:blue', linewidth=2, label='Median Loss')
+    ax.plot(gens, mins, color='tab:red', linestyle='--', linewidth=1.5, label='Best Loss (Min)')
+
+    ax.set_yscale('log')
+    ax.set_title("Population Loss Distribution over Generations")
+    ax.set_xlabel("Generation")
+    ax.set_ylabel("Loss (log scale)")
+    ax.grid(True, which="both", linestyle="--", alpha=0.5)
+    ax.legend(loc='upper right')
+
+    plt.tight_layout()
+    path_out = output_dir / 'loss_distribution_band.png'
+    plt.savefig(path_out, dpi=300)
+    plt.close()
+    print(f"-> 成果物を保存しました: {path_out}")

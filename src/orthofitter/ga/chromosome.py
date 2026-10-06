@@ -1,13 +1,18 @@
 import numpy as np
+import uuid
 
 class Chromosome:
     """
     GAの1個体を表現するクラス。
     どの基底を使うかの構造(mask)と、その構造下での最適係数(coeffs)を保持する。
     """
-    def __init__(self, max_degree: int):
+    def __init__(self, max_degree: int, parent_ids: list[str] = None):
         self.max_degree = max_degree
         self.dimension = max_degree + 1
+
+        # --- 系統樹追跡用のIDと親ID ---
+        self.id = str(uuid.uuid4())[:8]  # 8桁のランダムな一意ID
+        self.parent_ids = parent_ids if parent_ids is not None else []
         
         # 1/0のマスクをランダムに初期化
         self.mask = np.random.choice([0, 1], size=self.dimension)
@@ -45,7 +50,9 @@ class Chromosome:
         """
         一様交叉（Uniform Crossover）で2つの親から子を生成する。
         """
-        child = Chromosome(self.max_degree)
+        # 子を生成する際に、両親のIDを親情報として引き継ぐ
+        child = Chromosome(self.max_degree, parent_ids=[self.id, other.id])
+        
         for i in range(self.dimension):
             # 50%の確率で親Aか親Bのマスクを引き継ぐ
             if np.random.rand() < 0.5:

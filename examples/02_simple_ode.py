@@ -4,7 +4,7 @@ import numpy as np
 from orthofitter.catalog import HermiteCatalog
 from orthofitter.environment import HermiteODEEnvironment
 from orthofitter.ga.optimizer import GAOptimizer
-from orthofitter.visualization import save_optimization_plots
+from orthofitter.visualization import save_optimization_plots, save_basis_adoption_heatmap, save_loss_distribution_plot
 
 def main():
     parser = argparse.ArgumentParser(description="OrthoFitter GA Optimization Example")
@@ -12,7 +12,7 @@ def main():
     args = parser.parse_args()
 
     # n=1 の状態を狙うため lambda = 3.0
-    lambda_val = 3.0
+    lambda_val = 21.0
     print(f"=== OrthoFitter GA: 02_simple_ode.py (λ = {lambda_val}) ===")
 
     # 1. カタログの初期化（探索空間を広げるため max_degree=10）
@@ -28,8 +28,8 @@ def main():
         'pop_size': 20,          # 1世代あたりの個体数
         'generations': 10,       # 世代数
         'mutation_rate': 0.1,    # 0/1反転の確率
-        'elite_ratio': 0.1,      # 次世代へ無条件で残すエリートの割合
-        'beta': 1e-3             # 基底数に対するペナルティ係数
+        'elite_ratio': 0.3,      # 次世代へ無条件で残すエリートの割合
+        'beta': 25.0              # 基底数に対するペナルティ係数
     }
     optimizer = GAOptimizer(catalog, environment, options=ga_options)
 
@@ -47,7 +47,15 @@ def main():
     if args.visualize:
         print("\n可視化モードが有効です。画像を作成しています...")
         title = f"GA OrthoFitter: Hermite ODE ($\\lambda$ = {lambda_val})"
+
+        # 1. 従来のODE結果・診断グラフ
         save_optimization_plots(environment, catalog, result, output_dir="outputs", title=title)
+        
+        # 2. 【新規追加】基底の採用率時系列ヒートマップ
+        save_basis_adoption_heatmap(result, output_dir="outputs")
+
+        # 3. 【新規追加】Loss分布の推移グラフ
+        save_loss_distribution_plot(result, output_dir="outputs")
 
 if __name__ == '__main__':
     main()
