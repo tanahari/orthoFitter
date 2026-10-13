@@ -57,5 +57,36 @@ def main():
         # 3. 【新規追加】Loss分布の推移グラフ
         save_loss_distribution_plot(result, output_dir="outputs")
 
+class Tee:
+    """標準出力とファイルを同時に書き込むためのクラス"""
+    def __init__(self, *files):
+        self.files = files
+
+    def write(self, obj):
+        for f in self.files:
+            f.write(obj)
+            f.flush()  # すぐにバッファを書き込ませるために必要
+
+    def flush(self):
+        for f in self.files:
+            f.flush()
+
 if __name__ == '__main__':
-    main()
+    # 1. 出力先ディレクトリの作成とファイルオープン
+    output_dir = Path("outputs")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    log_path = output_dir / "output.log"
+    
+    log_file = open(log_path, "w", encoding="utf-8")
+    
+    # 2. ターミナル（元のsys.stdout）とログファイルの両方に流すTeeを設定
+    original_stdout = sys.stdout
+    sys.stdout = Tee(original_stdout, log_file)
+    
+    try:
+        # 3. メイン関数の実行
+        main()
+    finally:
+        # 4. 確実にファイルを閉じ、標準出力を元に戻す
+        log_file.close()
+        sys.stdout = original_stdout
