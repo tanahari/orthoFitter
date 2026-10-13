@@ -3,7 +3,7 @@ import numpy as np
 
 # 作成したパッケージから必要なモジュールをインポート
 from orthofitter.catalog import HermiteCatalog
-from orthofitter.environment import HermiteODEEnvironment
+from orthofitter.environment.hermite import HermiteODEEnvironment
 from orthofitter.solvers.gradient_and_stochastic import HybridSolver as Solver
 from orthofitter.visualization import save_optimization_plots, save_coefficient_dynamics_plots
 

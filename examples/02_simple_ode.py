@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 from orthofitter.catalog import HermiteCatalog
-from orthofitter.environment import HermiteODEEnvironment
+from orthofitter.environment.hermite import HermiteODEEnvironment
 from orthofitter.ga.optimizer import GAOptimizer
 from orthofitter.visualization import save_optimization_plots, save_basis_adoption_heatmap, save_loss_distribution_plot, save_diagnostic_dashboard
 
