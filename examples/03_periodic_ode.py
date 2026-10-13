@@ -1,5 +1,6 @@
 import argparse
 import sys
+import numpy as np
 from pathlib import Path
 
 from orthofitter.catalog import TrigonometricCatalog
@@ -18,12 +19,12 @@ def main():
     args = parser.parse_args()
 
     # ターゲットとする固有値パラメータ (例: 周期系における lambda = 4.0 など)
-    lambda_val = 4.0
+    lambda_val = 100.0
     print(f"=== OrthoFitter GA: 03_periodic_ode.py (Trigonometric, λ = {lambda_val}) ===")
 
     # 1. 三角関数カタログの初期化（探索空間を広げるため max_degree=10）
     max_degree = 10
-    domain_length = 10.0
+    domain_length = np.pi
     catalog = TrigonometricCatalog(max_degree=max_degree, domain_length=domain_length)
 
     # 2. 周期境界環境の初期化 [0, L]
@@ -31,11 +32,11 @@ def main():
 
     # 3. GAオプティマイザーの初期化
     ga_options = {
-        'pop_size': 30,          # 1世代あたりの個体数
-        'generations': 15,       # 世代数
-        'mutation_rate': 0.3,    # 0/1反転の確率
-        'elite_ratio': 0.2,      # 次世代へ無条件で残すエリートの割合
-        'beta': 1.0              # 基底数に対するペナルティ係数
+        'pop_size': 20,          # 1世代あたりの個体数
+        'generations': 10,       # 世代数
+        'mutation_rate': 0.1,    # 0/1反転の確率
+        'elite_ratio': 0.3,      # 次世代へ無条件で残すエリートの割合
+        'beta': 25.0              # 基底数に対するペナルティ係数
     }
     optimizer = GAOptimizer(catalog, environment, options=ga_options)
 
@@ -52,7 +53,7 @@ def main():
 
     if args.visualize:
         print("\n可視化モードが有効です。画像を作成しています...")
-        output_dir = Path("outputs_periodic")
+        output_dir = Path("outputs")
         title = f"GA OrthoFitter: Trigonometric ODE ($\\lambda$ = {lambda_val})"
 
         # 1. 従来のODE結果・診断グラフ
@@ -83,7 +84,7 @@ class Tee:
 
 if __name__ == '__main__':
     # 1. 出力先ディレクトリの作成とファイルオープン
-    output_dir = Path("outputs_periodic")
+    output_dir = Path("outputs")
     output_dir.mkdir(parents=True, exist_ok=True)
     log_path = output_dir / "output.log"
     
