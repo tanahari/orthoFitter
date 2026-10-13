@@ -63,11 +63,12 @@ class HermiteODEEnvironment:
         
         # 分相: 解自体の2乗積分
         solution_norm = np.trapezoid(u_sub**2, x_sub)
-        
-        # ゼロ割を防ぐための微小な定数 (eps)
-        eps = 1e-8
+
+        # 解の大きさが小さすぎる場合は「ゼロ解の罠（ハック）」とみなしてロスを悪化させる
+        if solution_norm < 1e-4:
+            return float('inf')
         
         # 「残差が小さく」かつ「解がゼロではない（分母が大きい）」ほどロスが小さくなる
-        loss = residual_norm / (solution_norm + eps)
+        loss = residual_norm / solution_norm
         
         return float(loss)
