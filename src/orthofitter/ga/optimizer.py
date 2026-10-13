@@ -4,6 +4,12 @@ import uuid
 from orthofitter.ga.chromosome import Chromosome
 from orthofitter.solvers.gradient_and_stochastic import HybridSolver
 from orthofitter.ga.subspace import SubspaceCatalogWrapper, SubspaceEnvironmentWrapper
+from orthofitter.diagnostics import (
+    compute_spatial_entropy,
+    compute_jacobian_spectrum,
+    compute_spectral_decay,
+    compute_step_efficiency
+)
 
 class GAOptimizer:
     def __init__(self, catalog, environment, options=None):
@@ -27,6 +33,7 @@ class GAOptimizer:
         if len(active_indices) == 0:
             ind.loss = float('inf')
             ind.fitness = -float('inf')
+            ind.diagnostics = {}
             return
 
         active_initial_coeffs = ind.coeffs[active_indices]
@@ -43,6 +50,25 @@ class GAOptimizer:
         ind.coeffs = np.zeros(self.max_degree + 1)
         ind.coeffs[active_indices] = result['optimized_coeffs']
         
+        # --- 診断指標の計算（個体レベル） ---
+        # 1. 空間的残差エントロピー H_res の計算用に対象波形と残差を取得
+        u_pred = self.catalog.evaluate_all(self.environment.x, ind.coeffs)
+        residuals, _ = self.environment.compute_residuals(u_pred)
+        h_res = compute_spatial_entropy(residuals)
+        
+        # 2. ヤコビアンのスペクトル解析（Best/エリートだけでなく全個体で軽量に算出可能）
+        jac_diag = compute_jacobian_spectrum(self.catalog, self.environment.x, ind.mask)
+        
+        # 3. スペクトル減衰率 γ
+        gamma = compute_spectral_decay(ind.coeffs)
+
+        ind.diagnostics = {
+            'h_res': h_res,
+            'condition_number': jac_diag['condition_number'],
+            'effective_rank': jac_diag['effective_rank'],
+            'gamma': gamma
+        }
+
         num_active = len(active_indices)
         if np.isinf(ind.loss) or np.isnan(ind.loss):
             ind.fitness = -float('inf')
@@ -56,6 +82,10 @@ class GAOptimizer:
         # --- 系統樹（系譜）の全履歴を保存するリスト ---
         lineage_records = []
 
+        # 世代間の探索効率計算のための前世代ベスト係数・ロスの保持
+        prev_best_coeffs = None
+        prev_best_loss = float('inf')
+
         for gen in range(self.generations):
             # 個体ごとの進捗を表示するために enumerate を使用
             for i, ind in enumerate(population):
@@ -65,8 +95,14 @@ class GAOptimizer:
             print(" " * 80, end="\r")
                 
             population.sort(key=lambda x: x.fitness, reverse=True)
-            
-            # --- 【追加】この世代の全個体の情報を記録 ---
+            best_gen = population[0]
+
+            # --- 世代間の探索効率（診断軸4）の算出 ---
+            step_diag = compute_step_efficiency(prev_best_coeffs, best_gen.coeffs, prev_best_loss, best_gen.loss)
+            prev_best_coeffs = best_gen.coeffs.copy()
+            prev_best_loss = best_gen.loss
+
+            # --- 全個体の情報を診断データも含めて記録 ---
             for ind in population:
                 lineage_records.append({
                     'id': ind.id,
@@ -75,19 +111,23 @@ class GAOptimizer:
                     'fitness': ind.fitness,
                     'loss': ind.loss,
                     'active_count': int(np.sum(ind.mask)),
-                    'mask': ind.mask.copy().tolist()
+                    'mask': ind.mask.copy().tolist(),
+                    'h_res': ind.diagnostics.get('h_res', 0.0),
+                    'condition_number': ind.diagnostics.get('condition_number', 0.0),
+                    'gamma': ind.diagnostics.get('gamma', 0.0),
+                    'eta_step': step_diag['eta_step'] if ind == best_gen else 0.0  # 代表としてベスト個体に紐づけ
                 })
             
-            # 全個体の詳細を出力（IDと親情報も確認できるように少し拡張）
             print(f"\n--- [Generation {gen+1}] 全個体のリスト（適応度順） ---")
             for i, ind in enumerate(population):
                 active_indices = np.where(ind.mask == 1)[0].tolist()
-                print(f"  個体 {i+1:2d} | ID: {ind.id} | Parent: {ind.parent_ids} | Fitness: {ind.fitness:10.4f} | Loss: {ind.loss:10.4e} | Active数: {len(active_indices):2d} | 基底: {active_indices}")
+                print(rf"  個体 {i+1:2d} | ID: {ind.id} | Parent: {ind.parent_ids} | Fitness: {ind.fitness:10.4f} | Loss: {ind.loss:10.4e} | H_{{res}}: {ind.diagnostics.get('h_res', 0):.2f} | κ(G): {ind.diagnostics.get('condition_number', 0):.1e}")
+                print(f"         Active数: {len(active_indices):2d} | 基底: {active_indices}")
                 print(f"         Coeffs: {ind.coeffs[ind.mask == 1]}")
             print("-" * 60)
 
             best_gen = population[0]
-            print(f"Generation {gen+1} 最良個体 -> ID: {best_gen.id} | Loss: {best_gen.loss:.4e} | Active Bases: {np.sum(best_gen.mask)} | Fitness: {best_gen.fitness:.4f}\n")
+            print(f"Generation {gen+1} 最良個体 -> ID: {best_gen.id} | Loss: {best_gen.loss:.4e} | Active Bases: {np.sum(best_gen.mask)} | Fitness: {best_gen.fitness:.4f} | eta_{{step}}: {step_diag['eta_step']:.4e}\n")
             
             if best_overall is None or best_gen.fitness > best_overall.fitness:
                 best_overall = copy.deepcopy(best_gen)

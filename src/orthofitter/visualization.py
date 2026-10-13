@@ -24,7 +24,7 @@ def save_optimization_plots(
     fig, axes = plt.subplots(2, 1, figsize=(8, 6))
     
     axes[0].plot(x, u_optimized, label=f'OrthoFitter Solution (Loss={result["final_loss"]:.2e})', color='blue', linewidth=2)
-    axes[0].set_title("OrthoFitte:" + title)
+    axes[0].set_title("OrthoFitter:" + title)
     axes[0].set_xlabel('x')
     axes[0].set_ylabel('u_pred(x)')
     axes[0].grid(True)
@@ -251,3 +251,98 @@ def save_loss_distribution_plot(result: dict, output_dir: str | Path = "outputs"
     plt.savefig(path_out, dpi=300)
     plt.close()
     print(f"-> 成果物を保存しました: {path_out}")
+
+def save_diagnostic_dashboard(result: dict, output_dir: str | Path = "outputs"):
+    """
+    【新規追加：4大診断軸の統合ダッシュボード】
+    H_res, condition_number, gamma, eta_step の推移を2x2パネルで可視化する。
+    """
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    lineage_records = result.get('lineage_records', [])
+    if not lineage_records:
+        print("-> 警告: lineage_records が見つからないため、診断ダッシュボードの作成をスキップします。")
+        return
+
+    gen_data = {}
+    for record in lineage_records:
+        gen = record['generation']
+        if gen not in gen_data:
+            gen_data[gen] = {
+                'h_res': [],
+                'cond': [],
+                'gamma': [],
+                'eta_step': record.get('eta_step', 0.0)
+            }
+        gen_data[gen]['h_res'].append(record.get('h_res', 0.0))
+        gen_data[gen]['cond'].append(record.get('condition_number', 0.0))
+        gen_data[gen]['gamma'].append(record.get('gamma', 0.0))
+
+    generations = sorted(gen_data.keys())
+    
+    h_res_medians, cond_medians, gamma_medians = [], [], []
+    h_res_mins, cond_mins, gamma_mins = [], [], []
+    eta_steps = []
+
+    for gen in generations:
+        h_res_arr = np.array(gen_data[gen]['h_res'])
+        cond_arr = np.array(gen_data[gen]['cond'])
+        cond_clean = cond_arr[~np.isinf(cond_arr) & ~np.isnan(cond_arr)]
+        gamma_arr = np.array(gen_data[gen]['gamma'])
+
+        h_res_medians.append(np.median(h_res_arr))
+        h_res_mins.append(np.min(h_res_arr))
+
+        cond_medians.append(np.median(cond_clean) if len(cond_clean) > 0 else np.nan)
+        cond_mins.append(np.min(cond_clean) if len(cond_clean) > 0 else np.nan)
+
+        gamma_medians.append(np.median(gamma_arr))
+        gamma_mins.append(np.min(gamma_arr))
+
+        eta_steps.append(gen_data[gen]['eta_step'])
+
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+    gens = np.array(generations)
+
+    # 1. 空間的残差エントロピー (H_res)
+    axes[0, 0].plot(gens, h_res_medians, color="tab:blue", marker="o", label=r"Median $H_{res}$")
+    axes[0, 0].plot(gens, h_res_mins, color="tab:cyan", linestyle="--", label=r"Min $H_{res}$")
+    axes[0, 0].set_title(r"1. Spatial Residual Entropy ($H_{res}$)")
+    axes[0, 0].set_xlabel("Generation")
+    axes[0, 0].set_ylabel("Entropy")
+    axes[0, 0].grid(True, linestyle="--", alpha=0.5)
+    axes[0, 0].legend(loc="upper right")
+
+    # 2. ヤコビアン条件数 ($\kappa(G)$)
+    axes[0, 1].plot(gens, cond_medians, color="tab:orange", marker="o", label=r"Median $\kappa(G)$",)
+    axes[0, 1].plot(gens, cond_mins, color="tab:red", linestyle="--", label=r"Min $\kappa(G)$")
+    axes[0, 1].set_yscale("log")
+    axes[0, 1].set_title(r"2. Jacobian Condition Number ($\kappa(G)$)")
+    axes[0, 1].set_xlabel("Generation")
+    axes[0, 1].set_ylabel("Condition Number (log)")
+    axes[0, 1].grid(True, which="both", linestyle="--", alpha=0.5)
+    axes[0, 1].legend(loc="upper right")
+
+    # 3. スペクトル減衰率 ($\gamma$)
+    axes[1, 0].plot(gens, gamma_medians, color="tab:green", marker="o", label=r"Median $\gamma$",)
+    axes[1, 0].plot(gens, gamma_mins, color="tab:olive", linestyle="--", label=r"Min $\gamma$",)
+    axes[1, 0].set_title(r"3. High-Frequency Spectral Decay ($\gamma$)")
+    axes[1, 0].set_xlabel("Generation")
+    axes[1, 0].set_ylabel("Energy Ratio")
+    axes[1, 0].grid(True, linestyle="--", alpha=0.5)
+    axes[1, 0].legend(loc="upper right")
+
+    # 4. 探索効率 ($\eta_{\text{step}}$)
+    axes[1, 1].plot(gens, eta_steps, color="tab:purple", marker="s", label=r"Best $\eta_{step}$",)
+    axes[1, 1].set_title(r"4. Search Efficiency ($\eta_{step} = \Delta L / \Delta \mu$)")
+    axes[1, 1].set_xlabel("Generation")
+    axes[1, 1].set_ylabel("Efficiency Ratio")
+    axes[1, 1].grid(True, linestyle="--", alpha=0.5)
+    axes[1, 1].legend(loc="upper right")
+
+    plt.tight_layout()
+    path_out = output_dir / 'diagnostic_dashboard.png'
+    plt.savefig(path_out, dpi=300)
+    plt.close()
+    print(f"-> 診断ダッシュボードを保存しました: {path_out}")

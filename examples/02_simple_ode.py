@@ -1,10 +1,11 @@
 import argparse
-import numpy as np
+import sys
+from pathlib import Path
 
 from orthofitter.catalog import HermiteCatalog
 from orthofitter.environment import HermiteODEEnvironment
 from orthofitter.ga.optimizer import GAOptimizer
-from orthofitter.visualization import save_optimization_plots, save_basis_adoption_heatmap, save_loss_distribution_plot
+from orthofitter.visualization import save_optimization_plots, save_basis_adoption_heatmap, save_loss_distribution_plot, save_diagnostic_dashboard
 
 def main():
     parser = argparse.ArgumentParser(description="OrthoFitter GA Optimization Example")
@@ -12,7 +13,7 @@ def main():
     args = parser.parse_args()
 
     # n=1 の状態を狙うため lambda = 3.0
-    lambda_val = 21.0
+    lambda_val = 3.0
     print(f"=== OrthoFitter GA: 02_simple_ode.py (λ = {lambda_val}) ===")
 
     # 1. カタログの初期化（探索空間を広げるため max_degree=10）
@@ -51,11 +52,14 @@ def main():
         # 1. 従来のODE結果・診断グラフ
         save_optimization_plots(environment, catalog, result, output_dir="outputs", title=title)
         
-        # 2. 【新規追加】基底の採用率時系列ヒートマップ
+        # 2. 基底の採用率時系列ヒートマップ
         save_basis_adoption_heatmap(result, output_dir="outputs")
 
-        # 3. 【新規追加】Loss分布の推移グラフ
+        # 3. Loss分布の推移グラフ
         save_loss_distribution_plot(result, output_dir="outputs")
+
+        # 4. 【新規追加】4大診断軸の統合ダッシュボード
+        save_diagnostic_dashboard(result, output_dir="outputs")
 
 class Tee:
     """標準出力とファイルを同時に書き込むためのクラス"""
